@@ -4,11 +4,17 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { FileText, Check, X, Users } from "lucide-react";
 
 export const IncomingApplications = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
     fetchApplications();
@@ -36,10 +42,10 @@ export const IncomingApplications = () => {
     setLoading(false);
   };
 
-  const handleStatusUpdate = async (applicationId: string, status: "accepted" | "rejected") => {
+  const handleAccept = async (applicationId: string) => {
     const { error } = await supabase
       .from("applications")
-      .update({ status })
+      .update({ status: "accepted" })
       .eq("id", applicationId);
 
     if (error) {
@@ -50,34 +56,77 @@ export const IncomingApplications = () => {
     // Get application details for notification
     const app = applications.find(a => a.id === applicationId);
     if (app?.teams) {
-      // Collect all member emails
-      const memberEmails = [
-        app.teams.member1_email,
-        app.teams.member2_email,
-        app.teams.member3_email
-      ].filter(Boolean);
-
-      // Get user IDs for all team members
-      const { data: memberProfiles } = await supabase
-        .from("profiles")
-        .select("id, email")
-        .in("email", memberEmails);
-
-      // Send notification to all team members
-      if (memberProfiles && memberProfiles.length > 0) {
-        const notifications = memberProfiles.map(profile => ({
-          user_id: profile.id,
-          title: `Application ${status === "accepted" ? "Accepted" : "Rejected"}`,
-          content: `Your application for "${app.project_title}" has been ${status}.`,
-          type: "application_status"
-        }));
-
-        await supabase.from("notifications").insert(notifications);
-      }
+      await sendNotificationsToTeam(app, "accepted", null);
     }
 
-    toast.success(`Application ${status}`);
+    toast.success("Application accepted");
     fetchApplications();
+  };
+
+  const handleOpenRejectDialog = (applicationId: string) => {
+    setSelectedApplicationId(applicationId);
+    setRejectionReason("");
+    setRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!selectedApplicationId) return;
+
+    const { error } = await supabase
+      .from("applications")
+      .update({ 
+        status: "rejected",
+        rejection_reason: rejectionReason || null
+      })
+      .eq("id", selectedApplicationId);
+
+    if (error) {
+      toast.error("Failed to update application");
+      return;
+    }
+
+    // Get application details for notification
+    const app = applications.find(a => a.id === selectedApplicationId);
+    if (app?.teams) {
+      await sendNotificationsToTeam(app, "rejected", rejectionReason);
+    }
+
+    toast.success("Application rejected");
+    setRejectDialogOpen(false);
+    setSelectedApplicationId(null);
+    setRejectionReason("");
+    fetchApplications();
+  };
+
+  const sendNotificationsToTeam = async (app: any, status: string, reason: string | null) => {
+    // Collect all member emails
+    const memberEmails = [
+      app.teams.member1_email,
+      app.teams.member2_email,
+      app.teams.member3_email
+    ].filter(Boolean);
+
+    // Get user IDs for all team members
+    const { data: memberProfiles } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .in("email", memberEmails);
+
+    // Send notification to all team members
+    if (memberProfiles && memberProfiles.length > 0) {
+      const notificationContent = status === "rejected" && reason
+        ? `Your application for "${app.project_title}" has been rejected. Reason: ${reason}`
+        : `Your application for "${app.project_title}" has been ${status}.`;
+
+      const notifications = memberProfiles.map(profile => ({
+        user_id: profile.id,
+        title: `Application ${status === "accepted" ? "Accepted" : "Rejected"}`,
+        content: notificationContent,
+        type: "application_status"
+      }));
+
+      await supabase.from("notifications").insert(notifications);
+    }
   };
 
   if (loading) {
@@ -165,7 +214,7 @@ export const IncomingApplications = () => {
                 {app.status === "pending" && (
                   <div className="flex gap-3 pt-4">
                     <Button
-                      onClick={() => handleStatusUpdate(app.id, "accepted")}
+                      onClick={() => handleAccept(app.id)}
                       className="flex-1"
                     >
                       <Check className="w-4 h-4 mr-2" />
@@ -173,7 +222,7 @@ export const IncomingApplications = () => {
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => handleStatusUpdate(app.id, "rejected")}
+                      onClick={() => handleOpenRejectDialog(app.id)}
                       className="flex-1"
                     >
                       <X className="w-4 h-4 mr-2" />
@@ -181,11 +230,47 @@ export const IncomingApplications = () => {
                     </Button>
                   </div>
                 )}
+
+                {app.status === "rejected" && app.rejection_reason && (
+                  <div className="mt-4 p-3 bg-destructive/10 rounded-lg">
+                    <p className="text-sm font-medium text-destructive">Rejection Reason:</p>
+                    <p className="text-sm text-muted-foreground">{app.rejection_reason}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Application</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">Reason for Rejection (Optional)</Label>
+              <Textarea
+                id="rejectionReason"
+                placeholder="Explain why you are rejecting this application..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject}>
+              Reject Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

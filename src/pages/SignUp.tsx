@@ -47,6 +47,19 @@ const SignUp = () => {
     }
 
     try {
+      // Check if Student ID already exists
+      const { data: existingStudent } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("student_id", formData.studentId)
+        .maybeSingle();
+
+      if (existingStudent) {
+        toast.error("Already have account with this Student ID. Try another ID");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,

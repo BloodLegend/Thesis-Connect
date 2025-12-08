@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { ResearchCells } from "@/components/student/ResearchCells";
+import { TrendingPapers } from "@/components/student/TrendingPapers";
 import { FindTeamMember } from "@/components/student/FindTeamMember";
 import { CreateTeam } from "@/components/student/CreateTeam";
 import { MyTeam } from "@/components/student/MyTeam";
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-type ActiveSection = "research-cells" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting";
+type ActiveSection = "research-cells" | "trending-papers" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -71,6 +72,8 @@ const StudentDashboard = () => {
         return <ProfileSection userProfile={userProfile} onProfileUpdate={() => checkAuth()} />;
       case "research-cells":
         return <ResearchCells />;
+      case "trending-papers":
+        return <TrendingPapers />;
       case "find-team":
         return <FindTeamMember />;
       case "create-team":

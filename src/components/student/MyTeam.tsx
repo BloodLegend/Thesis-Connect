@@ -1,40 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Users, MessageCircle, Send } from "lucide-react";
+import { Users, MessageCircle } from "lucide-react";
+import { TeamGroupChat } from "../shared/TeamGroupChat";
 
 export function MyTeam() {
   const [team, setTeam] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
   const [supervisor, setSupervisor] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
-    return () => {
-      supabase.removeAllChannels();
-    };
   }, []);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    setCurrentUserId(user.id);
 
     // Get user's profile to find their email
     const { data: profileData } = await supabase
@@ -83,60 +66,11 @@ export function MyTeam() {
 
         if (supProfile) {
           setSupervisor(supProfile);
-          setupRealtimeSubscription(user.id, appData.supervisor_id);
-          fetchMessages(user.id, appData.supervisor_id);
         }
       }
     }
 
     setLoading(false);
-  };
-
-  const fetchMessages = async (userId: string, supervisorId: string) => {
-    const { data } = await supabase
-      .from("messages")
-      .select(`
-        *,
-        sender:profiles!messages_sender_id_fkey(first_name, last_name)
-      `)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${supervisorId}),and(sender_id.eq.${supervisorId},receiver_id.eq.${userId})`)
-      .order("created_at", { ascending: true });
-
-    setMessages(data || []);
-  };
-
-  const setupRealtimeSubscription = (userId: string, supervisorId: string) => {
-    supabase
-      .channel("student-chat")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => fetchMessages(userId, supervisorId)
-      )
-      .subscribe();
-  };
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !supervisor) return;
-
-    setSending(true);
-    const { error } = await supabase.from("messages").insert({
-      sender_id: currentUserId,
-      receiver_id: supervisor.id,
-      content: newMessage
-    });
-
-    if (!error) {
-      setNewMessage("");
-    }
-    setSending(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
   };
 
   if (loading) {
@@ -222,68 +156,29 @@ export function MyTeam() {
             </div>
           )}
 
+          {supervisor && (
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Supervisor</p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{supervisor.first_name} {supervisor.last_name}</p>
+                <p className="text-sm text-muted-foreground">{supervisor.email}</p>
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             Registered on: {new Date(team.created_at).toLocaleDateString()}
           </p>
         </CardContent>
       </Card>
 
-      {/* Chat with Supervisor */}
-      {supervisor ? (
-        <Card className="h-[400px] flex flex-col">
-          <CardHeader className="border-b py-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageCircle className="w-5 h-5" />
-              Chat with {supervisor.first_name} {supervisor.last_name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col p-0">
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              {messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No messages yet. Start the conversation!</p>
-              ) : (
-                <div className="space-y-3">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[70%] p-3 rounded-lg ${
-                          message.sender_id === currentUserId
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <p className="text-xs font-medium mb-1 opacity-70">
-                          {message.sender?.first_name} {message.sender?.last_name}
-                        </p>
-                        <p className="text-sm">{message.content}</p>
-                        <p className="text-xs opacity-50 mt-1">
-                          {new Date(message.created_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={sending}
-                />
-                <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Group Chat with Team & Supervisor */}
+      {application && supervisor ? (
+        <TeamGroupChat
+          teamId={team.id}
+          teamName={team.team_id}
+          showBackButton={false}
+        />
       ) : (
         <Card>
           <CardContent className="p-8 text-center">

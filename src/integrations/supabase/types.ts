@@ -20,6 +20,7 @@ export type Database = {
           id: string
           project_description: string
           project_title: string
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["application_status"]
           supervisor_id: string | null
           team_id: string | null
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           project_description: string
           project_title: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           supervisor_id?: string | null
           team_id?: string | null
@@ -40,6 +42,7 @@ export type Database = {
           id?: string
           project_description?: string
           project_title?: string
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           supervisor_id?: string | null
           team_id?: string | null
@@ -150,6 +153,7 @@ export type Database = {
           read: boolean | null
           receiver_id: string | null
           sender_id: string | null
+          team_id: string | null
         }
         Insert: {
           content: string
@@ -158,6 +162,7 @@ export type Database = {
           read?: boolean | null
           receiver_id?: string | null
           sender_id?: string | null
+          team_id?: string | null
         }
         Update: {
           content?: string
@@ -166,6 +171,7 @@ export type Database = {
           read?: boolean | null
           receiver_id?: string | null
           sender_id?: string | null
+          team_id?: string | null
         }
         Relationships: [
           {
@@ -180,6 +186,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -266,6 +279,7 @@ export type Database = {
           application_id: string | null
           created_at: string
           draft_content: string | null
+          file_url: string | null
           id: string
           status: Database["public"]["Enums"]["progress_status"]
           supervisor_comments: string | null
@@ -275,6 +289,7 @@ export type Database = {
           application_id?: string | null
           created_at?: string
           draft_content?: string | null
+          file_url?: string | null
           id?: string
           status?: Database["public"]["Enums"]["progress_status"]
           supervisor_comments?: string | null
@@ -284,6 +299,7 @@ export type Database = {
           application_id?: string | null
           created_at?: string
           draft_content?: string | null
+          file_url?: string | null
           id?: string
           status?: Database["public"]["Enums"]["progress_status"]
           supervisor_comments?: string | null

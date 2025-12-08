@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { TrendingUp, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { TrendingUp, Clock, CheckCircle2, XCircle, Upload, FileIcon, Download } from "lucide-react";
 
 export function TrackProgress() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -14,6 +15,9 @@ export function TrackProgress() {
   const [progressUpdates, setProgressUpdates] = useState<any[]>([]);
   const [draftContent, setDraftContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -93,43 +97,104 @@ export function TrackProgress() {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
   const handleSubmitDraft = async () => {
-    if (!selectedApp || !draftContent.trim()) {
-      toast.error("Please enter draft content");
+    if (!selectedApp || (!draftContent.trim() && !selectedFile)) {
+      toast.error("Please enter draft content or attach a file");
       return;
     }
 
     setLoading(true);
+    setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      let fileUrl = null;
+
+      // Upload file if selected
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('thesis-drafts')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('thesis-drafts')
+          .getPublicUrl(fileName);
+
+        fileUrl = fileName; // Store path, not public URL (bucket is private)
+      }
 
       const { error } = await supabase
         .from("progress_updates")
         .insert({
           application_id: selectedApp.id,
-          draft_content: draftContent,
+          draft_content: draftContent || null,
           status: "draft_submitted",
           updated_by: user.id,
+          file_url: fileUrl,
         });
 
       if (error) throw error;
 
       // Notify supervisor
+      const notificationContent = selectedFile 
+        ? `${selectedApp.team.team_id} has submitted a new draft with file attachment for ${selectedApp.project_title}`
+        : `${selectedApp.team.team_id} has submitted a new draft for ${selectedApp.project_title}`;
+
       await supabase.from("notifications").insert({
         user_id: selectedApp.supervisor_id,
         title: "New Draft Submitted",
-        content: `${selectedApp.team.team_id} has submitted a new draft for ${selectedApp.project_title}`,
+        content: notificationContent,
         type: "progress",
       });
 
       toast.success("Draft submitted successfully!");
       setDraftContent("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       fetchProgressUpdates(selectedApp.id);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const handleDownloadFile = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('thesis-drafts')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast.error("Failed to download file");
     }
   };
 
@@ -222,8 +287,51 @@ export function TrackProgress() {
                       className="min-h-[150px] mt-2"
                     />
                   </div>
-                  <Button onClick={handleSubmitDraft} disabled={loading}>
-                    {loading ? "Submitting..." : "Submit Draft"}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fileUpload">Attach File (Optional)</Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="fileUpload"
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt,.zip"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose File
+                      </Button>
+                      {selectedFile && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FileIcon className="w-4 h-4" />
+                          <span>{selectedFile.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Accepted formats: PDF, DOC, DOCX, TXT, ZIP (max 10MB)
+                    </p>
+                  </div>
+
+                  <Button onClick={handleSubmitDraft} disabled={loading || uploading}>
+                    {uploading ? "Uploading..." : loading ? "Submitting..." : "Submit Draft"}
                   </Button>
                 </CardContent>
               </Card>
@@ -259,6 +367,20 @@ export function TrackProgress() {
                               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                                 {update.draft_content}
                               </p>
+                            </div>
+                          )}
+                          {update.file_url && (
+                            <div className="flex items-center gap-2">
+                              <FileIcon className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">Attached file</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadFile(update.file_url)}
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </Button>
                             </div>
                           )}
                           {update.supervisor_comments && (

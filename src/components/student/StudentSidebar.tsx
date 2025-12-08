@@ -1,7 +1,7 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from "@/components/ui/sidebar";
-import { Microscope, Users, UserPlus, GraduationCap, FileText, TrendingUp, Bell, User, Calendar, UsersRound } from "lucide-react";
+import { Microscope, Users, UserPlus, GraduationCap, FileText, TrendingUp, Bell, User, Calendar, UsersRound, Newspaper } from "lucide-react";
 
-type ActiveSection = "research-cells" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting";
+type ActiveSection = "research-cells" | "trending-papers" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting";
 
 interface StudentSidebarProps {
   activeSection: ActiveSection;
@@ -11,6 +11,7 @@ interface StudentSidebarProps {
 const menuItems = [
   { id: "profile" as ActiveSection, title: "Profile", icon: User },
   { id: "research-cells" as ActiveSection, title: "Research Cells", icon: Microscope },
+  { id: "trending-papers" as ActiveSection, title: "Trending Papers", icon: Newspaper },
   { id: "find-team" as ActiveSection, title: "Find Team Member", icon: Users },
   { id: "create-team" as ActiveSection, title: "Create Team", icon: UserPlus },
   { id: "my-team" as ActiveSection, title: "My Team", icon: UsersRound },

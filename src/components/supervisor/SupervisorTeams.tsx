@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Users, MessageSquare, Send, MessageCircle } from "lucide-react";
+import { Users, MessageSquare, Send, MessageCircle, FileIcon, Download } from "lucide-react";
 import { TeamChat } from "./TeamChat";
 
 export const SupervisorTeams = () => {
@@ -42,7 +42,7 @@ export const SupervisorTeams = () => {
     setLoading(false);
   };
 
-  const handleAddComment = async (applicationId: string, teamCreatorId: string) => {
+  const handleAddComment = async (applicationId: string, team: any) => {
     const comment = comments[applicationId];
     if (!comment?.trim()) {
       toast.error("Please enter a comment");
@@ -63,17 +63,53 @@ export const SupervisorTeams = () => {
       return;
     }
 
-    // Notify team
-    await supabase.from("notifications").insert({
-      user_id: teamCreatorId,
-      title: "New Supervisor Comment",
-      content: `Your supervisor has added a comment on your thesis progress.`,
-      type: "progress_update"
-    });
+    // Notify all team members
+    const memberEmails = [
+      team.member1_email,
+      team.member2_email,
+      team.member3_email
+    ].filter(Boolean);
+
+    const { data: memberProfiles } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("email", memberEmails);
+
+    if (memberProfiles && memberProfiles.length > 0) {
+      const notifications = memberProfiles.map(profile => ({
+        user_id: profile.id,
+        title: "New Supervisor Comment",
+        content: `Your supervisor has added a comment on your thesis progress.`,
+        type: "progress_update"
+      }));
+
+      await supabase.from("notifications").insert(notifications);
+    }
 
     toast.success("Comment added");
     setComments({ ...comments, [applicationId]: "" });
     fetchTeams();
+  };
+
+  const handleDownloadFile = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('thesis-drafts')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast.error("Failed to download file");
+    }
   };
 
   if (loading) {
@@ -183,6 +219,20 @@ export const SupervisorTeams = () => {
                           {update.draft_content && (
                             <p className="mb-2"><strong>Draft:</strong> {update.draft_content}</p>
                           )}
+                          {update.file_url && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileIcon className="w-4 h-4 text-muted-foreground" />
+                              <span>Attached file</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadFile(update.file_url)}
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </Button>
+                            </div>
+                          )}
                           {update.supervisor_comments && (
                             <p className="text-primary"><strong>Supervisor:</strong> {update.supervisor_comments}</p>
                           )}
@@ -203,7 +253,7 @@ export const SupervisorTeams = () => {
                     rows={3}
                   />
                   <Button 
-                    onClick={() => handleAddComment(team.id, team.teams?.creator_id)}
+                    onClick={() => handleAddComment(team.id, team.teams)}
                     className="w-full"
                   >
                     <Send className="w-4 h-4 mr-2" />

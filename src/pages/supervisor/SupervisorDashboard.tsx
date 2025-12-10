@@ -8,6 +8,7 @@ import { IncomingApplications } from "@/components/supervisor/IncomingApplicatio
 import { SupervisorTeams } from "@/components/supervisor/SupervisorTeams";
 import { SupervisorNotifications } from "@/components/supervisor/SupervisorNotifications";
 import { SupervisorMeeting } from "@/components/supervisor/SupervisorMeeting";
+import { ContentChecker } from "@/components/shared/ContentChecker";
 
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
@@ -67,6 +68,8 @@ const SupervisorDashboard = () => {
         return <SupervisorTeams />;
       case "meeting":
         return <SupervisorMeeting />;
+      case "content-checker":
+        return <ContentChecker />;
       case "notifications":
         return <SupervisorNotifications />;
       default:

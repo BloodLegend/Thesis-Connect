@@ -1,1 +1,13 @@
 project_id = "wuqcmlodqkglpdhlhesi"
+
+[functions.check-content]
+verify_jwt = false
+
+[functions.ai-detect]
+verify_jwt = false
+
+[functions.plagiarism-check]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false

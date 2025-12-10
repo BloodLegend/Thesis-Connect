@@ -144,18 +144,22 @@ export function TrendingPapers() {
         setError(null);
       }
 
-      // Build the search query with Q1 publisher filter
-      const searchTerm = query.trim() || topic.query;
-      const publisherQuery = publisher || "IEEE OR ACM OR Elsevier OR Springer";
+      // Build the search query - focus on topic-specific terms
+      const searchTerm = query.trim() ? `${query.trim()} ${topic.query}` : topic.query;
       
-      // Build URL with parameters
+      // Build URL with parameters - use query.bibliographic for more precise topic matching
       const params = new URLSearchParams({
-        query: `${searchTerm} ${publisherQuery}`,
+        "query.bibliographic": searchTerm,
         rows: "20",
         offset: currentOffset.toString(),
         sort: sort === "relevance" ? "relevance" : sort,
         order: sort === "published-desc" || sort === "is-referenced-by-count" ? "desc" : "asc",
       });
+      
+      // Add publisher filter if specified
+      if (publisher) {
+        params.set("query.publisher-name", publisher);
+      }
 
       // Add filters
       let filters: string[] = [];

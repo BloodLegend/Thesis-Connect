@@ -1,4 +1,4 @@
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Microscope, Users, UserPlus, GraduationCap, FileText, TrendingUp, Bell, User, Calendar, UsersRound, Newspaper, Shield } from "lucide-react";
 
 type ActiveSection = "research-cells" | "trending-papers" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting" | "content-checker";
@@ -25,10 +25,9 @@ const menuItems = [
 
 export function StudentSidebar({ activeSection, setActiveSection }: StudentSidebarProps) {
   return (
-    <Sidebar className="border-r border-border">
-      <div className="p-4 flex items-center justify-between border-b border-border">
+    <Sidebar className="border-r border-border" collapsible="none">
+      <div className="p-4 border-b border-border">
         <h2 className="font-semibold text-lg text-foreground">Student Menu</h2>
-        <SidebarTrigger />
       </div>
       <SidebarContent>
         <SidebarGroup>

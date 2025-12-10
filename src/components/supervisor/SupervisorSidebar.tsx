@@ -44,7 +44,7 @@ export const SupervisorSidebar = ({ activeSection, setActiveSection }: Superviso
             <GraduationCap className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">Thesis MS</h1>
+            <h1 className="font-bold text-sidebar-foreground">Thesis Connect</h1>
             <p className="text-xs text-sidebar-foreground/60">Supervisor Panel</p>
           </div>
         </div>

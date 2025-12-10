@@ -14,11 +14,12 @@ import { TrackProgress } from "@/components/student/TrackProgress";
 import { Notifications } from "@/components/student/Notifications";
 import { ProfileSection } from "@/components/student/ProfileSection";
 import { StudentMeeting } from "@/components/student/StudentMeeting";
+import { ContentChecker } from "@/components/shared/ContentChecker";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-type ActiveSection = "research-cells" | "trending-papers" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting";
+type ActiveSection = "research-cells" | "trending-papers" | "find-team" | "create-team" | "my-team" | "browse-supervisor" | "apply-thesis" | "track-progress" | "notifications" | "profile" | "meeting" | "content-checker";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -74,6 +75,8 @@ const StudentDashboard = () => {
         return <ResearchCells />;
       case "trending-papers":
         return <TrendingPapers />;
+      case "content-checker":
+        return <ContentChecker />;
       case "find-team":
         return <FindTeamMember />;
       case "create-team":

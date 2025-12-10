@@ -42,7 +42,7 @@ export const AdminSidebar = ({ activeSection, setActiveSection }: AdminSidebarPr
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">Thesis MS</h1>
+            <h1 className="font-bold text-sidebar-foreground">Thesis Connect</h1>
             <p className="text-xs text-sidebar-foreground/60">Admin Panel</p>
           </div>
         </div>

@@ -9,7 +9,8 @@ import {
   Bell, 
   LogOut,
   GraduationCap,
-  Calendar
+  Calendar,
+  Shield
 } from "lucide-react";
 
 interface SupervisorSidebarProps {
@@ -31,6 +32,7 @@ export const SupervisorSidebar = ({ activeSection, setActiveSection }: Superviso
     { id: "applications", label: "Applications", icon: FileText },
     { id: "teams", label: "My Teams", icon: Users },
     { id: "meeting", label: "Meeting", icon: Calendar },
+    { id: "content-checker", label: "AI & Plagiarism Checker", icon: Shield },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 

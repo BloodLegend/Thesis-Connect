@@ -136,7 +136,7 @@ const StudentDashboard = () => {
           <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
             <div>
               <h1 className="text-xl font-semibold text-foreground">
-                Thesis Management System
+                Thesis Connect
               </h1>
               <p className="text-sm text-muted-foreground">Student Portal</p>
             </div>
